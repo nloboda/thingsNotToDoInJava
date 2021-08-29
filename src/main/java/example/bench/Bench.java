@@ -3,16 +3,14 @@ package example.bench;
 import example.NumberSign;
 import example.NumberSignCalculator;
 import example.NumberSignMatcher;
+import example.StackDeepener;
 import example.branch.based.BranchBasedNegativeNumberMatcher;
 import example.branch.based.BranchBasedPositiveNumberMatcher;
 import example.branch.based.BranchBasedZeroNumberMatcher;
 import example.exception.based.ExceptionBasedNegativeNumberMatcher;
 import example.exception.based.ExceptionBasedPositiveNumberMatcher;
 import example.exception.based.ExceptionBasedZeroNumberMatcher;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.LinkedHashMap;
@@ -26,6 +24,10 @@ public class Bench {
     private NumberSignCalculator exceptionBasedCalculator;
     private NumberSignCalculator branchBasedCalculator;
     private List<Integer> numbers;
+    private final StackDeepener stackDeepener = new StackDeepener();
+
+    @Param({"0","10","15","20","25","30","35", "40","45", "50"})
+    private int stackDepth;
 
     @Setup
     public void setup(){
@@ -35,18 +37,26 @@ public class Bench {
     }
 
     @Benchmark
-    public void exceptionBased(final Blackhole blackhole) {
-        for(int i:numbers) {
-            blackhole.consume(exceptionBasedCalculator.apply(i));
-        }
+    public void exceptionBased(final Blackhole blackhole) throws Exception {
+        stackDeepener.runAtStackLevel(() -> {
+            for(int i:numbers) {
+                blackhole.consume(exceptionBasedCalculator.apply(i));
+            }
+            return null;
+        }, stackDepth);
     }
 
     @Benchmark
-    public void branchBased(final Blackhole blackhole) {
-        for(int i:numbers) {
-            blackhole.consume(branchBasedCalculator.apply(i));
-        }
+    public void branchBased(final Blackhole blackhole) throws Exception {
+        stackDeepener.runAtStackLevel(() -> {
+            for(int i:numbers) {
+                blackhole.consume(branchBasedCalculator.apply(i));
+            }
+            return null;
+        }, stackDepth);
     }
+
+
 
     private static final List<Integer> generateRandomIntegers() {
         final Random r = new Random();
